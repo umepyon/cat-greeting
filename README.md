@@ -12,3 +12,5 @@
 - 時間帯・順番・表情は `index.html` の `SCHEDULE`、`FACES` で変えられます。確認用に `?hour=7` のように時刻を指定できます。
 
 声（マーレ風、Irodori TTS）と画像の元は非公開リポジトリ umepyon/cat-robot-blender にあります。ここにはページに必要な分だけを置いています。
+
+一橋大学の寮（景明館・中和寮）に置くQR・NFCの仕組みの1つです。まとめた案内は非公開リポジトリ umepyon/keimeikan-room-walkthrough の docs/SERVICES.md にあります。

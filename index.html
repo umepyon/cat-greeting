@@ -26,18 +26,19 @@
   .robot .screen img { width:78%; height:auto; image-rendering:pixelated; }
   .robot.talking { animation:bob .32s ease-in-out infinite alternate; }
   @keyframes bob { to { transform:translateY(-5px) rotate(-1deg); } }
-  .big { display:block; width:100%; margin:12px 0 4px; padding:14px 16px; border:0; border-radius:28px;
-         background:var(--btn); color:#fff; font:inherit; font-size:24px; font-weight:700; cursor:pointer;
-         box-shadow:0 6px 0 var(--btn-dark); }
-  .big small { display:block; font-size:15px; font-weight:500; opacity:.85; margin-top:2px; }
-  .big:active { transform:translateY(4px); box-shadow:0 2px 0 var(--btn-dark); }
-  .big[hidden] { display:none; }
+  .robot.tappable { cursor:pointer; animation:call 1.6s ease-in-out infinite; }
+  @keyframes call { 0%,100% { box-shadow:0 4px 0 #ead8c8, 0 0 0 0 rgba(247,169,184,.0); }
+                    50% { box-shadow:0 4px 0 #ead8c8, 0 0 0 10px rgba(247,169,184,.55); } }
+  .robot.tappable.talking { animation:bob .32s ease-in-out infinite alternate; }
+  .tap { display:inline-block; margin:12px 0 0; padding:10px 26px; border-radius:999px; background:var(--btn);
+         color:#fff; font-size:22px; font-weight:700; box-shadow:0 4px 0 var(--btn-dark); cursor:pointer; }
+  .tap[hidden] { display:none; }
   .label { margin:12px 0 6px; font-size:14px; line-height:1.3; color:var(--soft); }
   .voices { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .voices button { padding:14px 6px; border:0; border-radius:18px; background:#fff; color:var(--ink);
          font:inherit; font-size:18px; font-weight:600; cursor:pointer; box-shadow:0 3px 0 #ead8c8; }
   .voices button:active { transform:translateY(2px); box-shadow:0 1px 0 #ead8c8; }
-  .voices button.playing, .big.playing { outline:4px solid var(--ear); outline-offset:2px; }
+  .voices button.playing { outline:4px solid var(--ear); outline-offset:2px; }
   .note { margin:10px 0 0; font-size:13px; color:var(--soft); }
 </style>
 </head>
@@ -51,16 +52,17 @@
     <div class="screen"><img id="face" src="img/face-normal.png?v=3" alt="" width="128" height="64"></div>
   </div>
 
-  <button class="big" id="big" hidden></button>
+  <p class="tap" id="tap" hidden>🐾 さわってにゃ</p>
 
-  <p class="label">声をえらんで鳴らす</p>
+  <section id="test" hidden>
+  <p class="label">テスト用（?all=1 のときだけ表示）</p>
   <div class="voices">
     <button data-voice="ohayou">おはよう</button>
     <button data-voice="asagohan">朝ごはん</button>
     <button data-voice="ittera">いってらっしゃい</button>
     <button data-voice="oyasumi">おやすみ</button>
   </div>
-  <p class="note">ボタンを押すと、チャオがしゃべるよ。</p>
+  </section>
 </main>
 <script>
 /* ===== 設定（ここを変えると時間帯や順番が変わります） =====
@@ -68,17 +70,19 @@
    start が end より大きいときは、日付をまたぎます（21〜4 は 21:00〜翌4:59）。 */
 const SCHEDULE = [
   { name: 'morning', start: 5,  end: 11, play: ['ohayou', 'asagohan', 'ittera'],
-    title: 'おはよう', hint: 'おはよう・朝ごはん・いってらっしゃい', greet: 'おはようの時間だにゃ' },
+    greet: 'おはようの時間だにゃ' },
   { name: 'night',   start: 21, end: 4,  play: ['oyasumi'],
-    title: 'おやすみ', hint: 'タップで おやすみ', greet: 'そろそろ眠る時間だにゃ', sleepy: true },
+    greet: 'そろそろ眠る時間だにゃ', sleepy: true },
 ];
+const IDLE_GREET = 'また、あとでにゃ';   // 声の時間以外に出す一言
 const VOICES = { ohayou: 'ohayou.mp3', asagohan: 'asagohan.mp3', ittera: 'ittera.mp3', oyasumi: 'oyasumi.mp3' };
 // 声ごとの表情（img/face-*.png）。待機中は normal、ときどき blink。
 const FACES = { ohayou: 'yay', asagohan: 'love', ittera: 'wink', oyasumi: 'sleep' };
 /* ============================================================ */
 
 const cat = document.getElementById('cat');
-const big = document.getElementById('big');
+const tap = document.getElementById('tap');
+const params = new URLSearchParams(location.search);
 const greet = document.getElementById('greet');
 const face = document.getElementById('face');
 let idleFace = 'normal';
@@ -91,7 +95,7 @@ let queue = [], activeBtn = null;
 
 function inRange(h, s, e) { return s <= e ? (h >= s && h <= e) : (h >= s || h <= e); }
 function hourNow() {
-  const q = new URLSearchParams(location.search).get('hour'); // 確認用：?hour=7
+  const q = params.get('hour'); // 確認用：?hour=7
   return q !== null && !isNaN(+q) ? +q : new Date().getHours();
 }
 function stopAll() {
@@ -113,19 +117,21 @@ function start(list, btn) {
 
 const slot = SCHEDULE.find(s => inRange(hourNow(), s.start, s.end));
 if (slot) {
-  big.hidden = false;
-  big.innerHTML = '🐾 ' + slot.title + '<small>' + slot.hint + '</small>';
+  // 声の時間：チャオの絵（と「さわってにゃ」）を1回さわると鳴る。ブラウザの決まりで最初のタップが必要。
   greet.textContent = slot.greet;
   if (slot.sleepy) { idleFace = 'sleep'; setFace('sleep'); }
-  big.addEventListener('click', () => start(slot.play, big));
+  cat.classList.add('tappable'); tap.hidden = false;
+  const go = () => start(slot.play, cat);
+  cat.addEventListener('click', go); tap.addEventListener('click', go);
 } else {
-  greet.textContent = 'なにを話そうかにゃ';
+  greet.textContent = IDLE_GREET;   // 声の時間以外は、待機の絵だけ（声は出さない）
 }
+if (params.get('all') === '1') document.getElementById('test').hidden = false;  // テスト用の4ボタン
 setInterval(() => {   // 待機中のまばたき
   if (idleFace === 'normal' && !activeBtn) { setFace('blink'); setTimeout(() => { if (!activeBtn) setFace(idleFace); }, 180); }
 }, 3500);
 
-/* 写真の大きさを画面の高さに合わせ、スクロールしなくてもボタンまで全部見えるようにする */
+/* 写真の大きさを画面の高さに合わせ、スクロールしなくても全部見えるようにする */
 function fitRobot() {
   const robot = document.getElementById('cat');
   const main = document.querySelector('main');

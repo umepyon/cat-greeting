@@ -29,6 +29,8 @@
   .robot.tappable { cursor:pointer; animation:call 1.6s ease-in-out infinite; }
   @keyframes call { 0%,100% { box-shadow:0 4px 0 #ead8c8, 0 0 0 0 rgba(247,169,184,.0); }
                     50% { box-shadow:0 4px 0 #ead8c8, 0 0 0 10px rgba(247,169,184,.55); } }
+  .robot.poke { animation:poke .5s ease-in-out; }
+  @keyframes poke { 0%,100% { transform:none; } 30% { transform:rotate(-4deg) scale(1.03); } 60% { transform:rotate(3deg); } }
   .robot.tappable.talking { animation:bob .32s ease-in-out infinite alternate; }
   .tap { display:inline-block; margin:12px 0 0; padding:10px 26px; border-radius:999px; background:var(--btn);
          color:#fff; font-size:22px; font-weight:700; box-shadow:0 4px 0 var(--btn-dark); cursor:pointer; }
@@ -75,6 +77,7 @@ const SCHEDULE = [
     greet: 'そろそろ眠る時間だにゃ', sleepy: true },
 ];
 const IDLE_GREET = 'また、あとでにゃ';   // 声の時間以外に出す一言
+const IDLE_TOUCH = '朝と夜に、また来てにゃ';   // 声の時間以外にさわったときの一言（声は出さない）
 const VOICES = { ohayou: 'ohayou.mp3', asagohan: 'asagohan.mp3', ittera: 'ittera.mp3', oyasumi: 'oyasumi.mp3' };
 // 声ごとの表情（img/face-*.png）。待機中は normal、ときどき blink。
 const FACES = { ohayou: 'yay', asagohan: 'love', ittera: 'wink', oyasumi: 'sleep' };
@@ -125,6 +128,15 @@ if (slot) {
   cat.addEventListener('click', go); tap.addEventListener('click', go);
 } else {
   greet.textContent = IDLE_GREET;   // 声の時間以外は、待機の絵だけ（声は出さない）
+  // さわったら、声は出さずに表情と一言で反応する
+  cat.style.cursor = 'pointer';
+  let poke = null;
+  cat.addEventListener('click', () => {
+    clearTimeout(poke);
+    greet.textContent = IDLE_TOUCH;
+    activeBtn = cat; setFace('wink'); cat.classList.remove('poke'); void cat.offsetWidth; cat.classList.add('poke');
+    poke = setTimeout(() => { activeBtn = null; setFace(idleFace); greet.textContent = IDLE_GREET; cat.classList.remove('poke'); }, 2200);
+  });
 }
 if (params.get('all') === '1') document.getElementById('test').hidden = false;  // テスト用の4ボタン
 setInterval(() => {   // 待機中のまばたき

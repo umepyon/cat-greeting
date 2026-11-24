@@ -51,7 +51,7 @@
 
   <div class="robot" id="cat">
     <img class="body" src="img/ciao.jpg" alt="猫ロボのチャオ" width="640" height="640">
-    <div class="screen"><img id="face" src="img/face-normal.png?v=3" alt="" width="128" height="64"></div>
+    <div class="screen"><img id="face" src="img/face-normal.png?v=4" alt="" width="128" height="64"></div>
   </div>
 
   <p class="tap" id="tap" hidden>🐾 さわってにゃ</p>
@@ -62,6 +62,7 @@
     <button data-voice="ohayou">おはよう</button>
     <button data-voice="asagohan">朝ごはん</button>
     <button data-voice="ittera">いってらっしゃい</button>
+    <button data-voice="okaeri">おかえり</button>
     <button data-voice="oyasumi">おやすみ</button>
   </div>
   </section>
@@ -73,14 +74,16 @@
 const SCHEDULE = [
   { name: 'morning', start: 5,  end: 11, play: ['ohayou', 'asagohan', 'ittera'],
     greet: 'おはようの時間だにゃ' },
+  { name: 'evening', start: 15, end: 20, play: ['okaeri'],
+    greet: 'おかえりの時間だにゃ' },
   { name: 'night',   start: 21, end: 4,  play: ['oyasumi'],
     greet: 'そろそろ眠る時間だにゃ', sleepy: true },
 ];
 const IDLE_GREET = 'また、あとでにゃ';   // 声の時間以外に出す一言
-const IDLE_TOUCH = '朝と夜に、また来てにゃ';   // 声の時間以外にさわったときの一言（声は出さない）
-const VOICES = { ohayou: 'ohayou.mp3', asagohan: 'asagohan.mp3', ittera: 'ittera.mp3', oyasumi: 'oyasumi.mp3' };
+const IDLE_TOUCH = '朝・夕方・夜に、また来てにゃ';   // 声の時間以外にさわったときの一言（声は出さない）
+const VOICES = { okaeri: 'okaeri.mp3', ohayou: 'ohayou.mp3', asagohan: 'asagohan.mp3', ittera: 'ittera.mp3', oyasumi: 'oyasumi.mp3' };
 // 声ごとの表情（img/face-*.png）。待機中は normal、ときどき blink。
-const FACES = { ohayou: 'yay', asagohan: 'love', ittera: 'wink', oyasumi: 'sleep' };
+const FACES = { okaeri: 'love', ohayou: 'yay', asagohan: 'love', ittera: 'wink', oyasumi: 'sleep' };
 /* ============================================================ */
 
 const cat = document.getElementById('cat');
@@ -89,7 +92,7 @@ const params = new URLSearchParams(location.search);
 const greet = document.getElementById('greet');
 const face = document.getElementById('face');
 let idleFace = 'normal';
-const FACE_VER = '3';  // 表情画像を差し替えたら数字を上げる（古い画像がスマホに残らないように）
+const FACE_VER = '4';  // 表情画像を差し替えたら数字を上げる（古い画像がスマホに残らないように）
 function setFace(name) { face.src = 'img/face-' + name + '.png?v=' + FACE_VER; }
 ['normal','blink','sleep','yay','love','wink'].forEach(n => { new Image().src = 'img/face-' + n + '.png?v=' + FACE_VER; });
 const audio = new Audio();

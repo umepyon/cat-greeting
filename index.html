@@ -48,7 +48,7 @@
 
   <div class="robot" id="cat">
     <img class="body" src="img/ciao.jpg" alt="猫ロボのチャオ" width="640" height="640">
-    <div class="screen"><img id="face" src="img/face-normal.png" alt="" width="128" height="64"></div>
+    <div class="screen"><img id="face" src="img/face-normal.png?v=2" alt="" width="128" height="64"></div>
   </div>
 
   <button class="big" id="big" hidden></button>
@@ -82,8 +82,9 @@ const big = document.getElementById('big');
 const greet = document.getElementById('greet');
 const face = document.getElementById('face');
 let idleFace = 'normal';
-function setFace(name) { face.src = 'img/face-' + name + '.png'; }
-['normal','blink','sleep','yay','love','wink'].forEach(n => { new Image().src = 'img/face-' + n + '.png'; });
+const FACE_VER = '2';  // 表情画像を差し替えたら数字を上げる（古い画像がスマホに残らないように）
+function setFace(name) { face.src = 'img/face-' + name + '.png?v=' + FACE_VER; }
+['normal','blink','sleep','yay','love','wink'].forEach(n => { new Image().src = 'img/face-' + n + '.png?v=' + FACE_VER; });
 const audio = new Audio();
 audio.preload = 'auto';
 let queue = [], activeBtn = null;

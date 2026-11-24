@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#fdf1e6">
+<title>チャオのおしゃべり</title>
+<style>
+  :root { --bg:#fdf1e6; --ink:#4a3a44; --fur:#f6c98f; --fur-dark:#e0a65e; --ear:#f7a9b8;
+          --btn:#7b5a72; --btn-dark:#58404f; --soft:#8c7a84; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; background:var(--bg); color:var(--ink);
+         font:18px/1.6 system-ui,-apple-system,"Hiragino Sans","Hiragino Maru Gothic ProN",sans-serif;
+         display:flex; justify-content:center; -webkit-tap-highlight-color:transparent; }
+  main { width:100%; max-width:440px; padding:24px 20px calc(36px + env(safe-area-inset-bottom)); text-align:center; }
+  h1 { font-size:24px; margin:4px 0 2px; letter-spacing:.05em; }
+  .greet { margin:0 0 14px; color:var(--soft); font-size:16px; min-height:1.6em; }
+
+  /* 猫ロボ・チャオの写真に、顔の画面（OLEDの表情）を重ねる */
+  .robot { position:relative; width:min(300px,82vw); margin:4px auto 0; border-radius:28px;
+           background:#fff; box-shadow:0 4px 0 #ead8c8; overflow:hidden; }
+  .robot img.body { display:block; width:100%; height:auto; }
+  .robot .screen { position:absolute; left:30.6%; top:30.4%; width:40%; height:17.4%;
+           background:#111; border-radius:30% / 48%; display:flex; align-items:center; justify-content:center; }
+  .robot .screen img { width:78%; height:auto; image-rendering:pixelated; }
+  .robot.talking { animation:bob .32s ease-in-out infinite alternate; }
+  @keyframes bob { to { transform:translateY(-5px) rotate(-1deg); } }
+  .big { display:block; width:100%; margin:16px 0 6px; padding:22px 16px; border:0; border-radius:28px;
+         background:var(--btn); color:#fff; font:inherit; font-size:24px; font-weight:700; cursor:pointer;
+         box-shadow:0 6px 0 var(--btn-dark); }
+  .big small { display:block; font-size:15px; font-weight:500; opacity:.85; margin-top:2px; }
+  .big:active { transform:translateY(4px); box-shadow:0 2px 0 var(--btn-dark); }
+  .big[hidden] { display:none; }
+  .label { margin:22px 0 8px; font-size:15px; color:var(--soft); }
+  .voices { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .voices button { padding:16px 8px; border:0; border-radius:18px; background:#fff; color:var(--ink);
+         font:inherit; font-size:18px; font-weight:600; cursor:pointer; box-shadow:0 3px 0 #ead8c8; }
+  .voices button:active { transform:translateY(2px); box-shadow:0 1px 0 #ead8c8; }
+  .voices button.playing, .big.playing { outline:4px solid var(--ear); outline-offset:2px; }
+  .note { margin-top:20px; font-size:14px; color:var(--soft); }
+</style>
+</head>
+<body>
+<main>
+  <h1>チャオのおしゃべり</h1>
+  <p class="greet" id="greet"></p>
+
+  <div class="robot" id="cat">
+    <img class="body" src="img/ciao.jpg" alt="猫ロボのチャオ" width="640" height="640">
+    <div class="screen"><img id="face" src="img/face-normal.png" alt="" width="128" height="64"></div>
+  </div>
+
+  <button class="big" id="big" hidden></button>
+
+  <p class="label">声をえらんで鳴らす</p>
+  <div class="voices">
+    <button data-voice="ohayou">おはよう</button>
+    <button data-voice="asagohan">朝ごはん</button>
+    <button data-voice="ittera">いってらっしゃい</button>
+    <button data-voice="oyasumi">おやすみ</button>
+  </div>
+  <p class="note">ボタンを押すと、チャオがしゃべるよ。</p>
+</main>
+<script>
+/* ===== 設定（ここを変えると時間帯や順番が変わります） =====
+   start〜end は「時」。end の時台まで含みます（5〜11 は 5:00〜11:59）。
+   start が end より大きいときは、日付をまたぎます（21〜4 は 21:00〜翌4:59）。 */
+const SCHEDULE = [
+  { name: 'morning', start: 5,  end: 11, play: ['ohayou', 'asagohan', 'ittera'],
+    title: 'おはよう', hint: 'おはよう・朝ごはん・いってらっしゃい', greet: 'おはようの時間だにゃ' },
+  { name: 'night',   start: 21, end: 4,  play: ['oyasumi'],
+    title: 'おやすみ', hint: 'タップで おやすみ', greet: 'そろそろ眠る時間だにゃ', sleepy: true },
+];
+const VOICES = { ohayou: 'ohayou.mp3', asagohan: 'asagohan.mp3', ittera: 'ittera.mp3', oyasumi: 'oyasumi.mp3' };
+// 声ごとの表情（img/face-*.png）。待機中は normal、ときどき blink。
+const FACES = { ohayou: 'yay', asagohan: 'love', ittera: 'wink', oyasumi: 'sleep' };
+/* ============================================================ */
+
+const cat = document.getElementById('cat');
+const big = document.getElementById('big');
+const greet = document.getElementById('greet');
+const face = document.getElementById('face');
+let idleFace = 'normal';
+function setFace(name) { face.src = 'img/face-' + name + '.png'; }
+['normal','blink','sleep','yay','love','wink'].forEach(n => { new Image().src = 'img/face-' + n + '.png'; });
+const audio = new Audio();
+audio.preload = 'auto';
+let queue = [], activeBtn = null;
+
+function inRange(h, s, e) { return s <= e ? (h >= s && h <= e) : (h >= s || h <= e); }
+function hourNow() {
+  const q = new URLSearchParams(location.search).get('hour'); // 確認用：?hour=7
+  return q !== null && !isNaN(+q) ? +q : new Date().getHours();
+}
+function stopAll() {
+  queue = []; audio.pause();
+  cat.classList.remove('talking'); setFace(idleFace);
+  if (activeBtn) activeBtn.classList.remove('playing');
+  activeBtn = null;
+}
+function playNext() {
+  const v = queue.shift();
+  if (!v) { cat.classList.remove('talking'); setFace(idleFace); if (activeBtn) activeBtn.classList.remove('playing'); activeBtn = null; return; }
+  audio.src = VOICES[v]; setFace(FACES[v] || 'normal');
+  audio.play().then(() => cat.classList.add('talking')).catch(stopAll);
+}
+audio.addEventListener('ended', playNext);
+function start(list, btn) {
+  stopAll(); queue = list.slice(); activeBtn = btn; btn.classList.add('playing'); playNext();
+}
+
+const slot = SCHEDULE.find(s => inRange(hourNow(), s.start, s.end));
+if (slot) {
+  big.hidden = false;
+  big.innerHTML = '🐾 ' + slot.title + '<small>' + slot.hint + '</small>';
+  greet.textContent = slot.greet;
+  if (slot.sleepy) { idleFace = 'sleep'; setFace('sleep'); }
+  big.addEventListener('click', () => start(slot.play, big));
+} else {
+  greet.textContent = 'なにを話そうかにゃ';
+}
+setInterval(() => {   // 待機中のまばたき
+  if (idleFace === 'normal' && !activeBtn) { setFace('blink'); setTimeout(() => { if (!activeBtn) setFace(idleFace); }, 180); }
+}, 3500);
+document.querySelectorAll('.voices button').forEach(b =>
+  b.addEventListener('click', () => start([b.dataset.voice], b)));
+</script>
+</body>
+</html>
